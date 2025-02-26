@@ -2,6 +2,10 @@ import React, { useContext, useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { assets } from '../assets/assets';
 import { AppContext } from '../content/AppContext';
+<<<<<<< Updated upstream
+=======
+import RelatedLawyers from '../components/RelatedLawyers';
+>>>>>>> Stashed changes
 
 const Appointment = () => {
   const { docId } = useParams();
@@ -126,6 +130,13 @@ const Appointment = () => {
           </div>
           <button className='bg-primary text-white text-sm font-light px-14 py-3 rounded-full my-6'>Book An Appointment</button>
         </div>
+<<<<<<< Updated upstream
+=======
+        <div>
+          {/* Listing Lawyers */ }
+          <RelatedLawyers docId={docId}  speciality={lawInfo.speciality}/>
+        </div>
+>>>>>>> Stashed changes
       </div>
     )
   );
