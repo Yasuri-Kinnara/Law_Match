@@ -2,15 +2,27 @@
 @tailwind components;
 @tailwind utilities;
 
-.leaflet-container {
-  z-index: 1;
+:root {
+  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-.leaflet-popup-content-wrapper {
-  border-radius: 0.5rem;
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
 }
 
-/* Fix for marker icon positioning */
-.leaflet-marker-icon {
-  filter: drop-shadow(2px 2px 2px rgba(0, 0, 0, 0.3));
+/* Fix for Leaflet marker icon */
+.leaflet-default-icon-path {
+  background-image: url("https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon.png");
+}
+
+.leaflet-default-shadow-path {
+  background-image: url("https://unpkg.com/leaflet@1.7.1/dist/images/marker-shadow.png");
 }
