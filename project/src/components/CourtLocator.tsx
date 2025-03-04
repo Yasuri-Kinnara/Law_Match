@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { MapPin, Compass, Building2 } from 'lucide-react';
-import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 
@@ -14,17 +14,6 @@ const customIcon = new L.Icon({
   popupAnchor: [1, -34],
   shadowSize: [41, 41]
 });
-
-// Component to handle map view updates
-function MapUpdater({ center, zoom }: { center: { lat: number; lng: number }; zoom: number }) {
-  const map = useMap();
-  
-  useEffect(() => {
-    map.setView([center.lat, center.lng], zoom);
-  }, [center, zoom, map]);
-  
-  return null;
-}
 
 interface Court {
   id: string;
@@ -438,15 +427,13 @@ const sriLankaCourts: Court[] = [
 export default function CourtLocator() {
   const [location, setLocation] = useState<GeolocationPosition | null>(null);
   const [loading, setLoading] = useState(false);
-  const [mapLoading, setMapLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [courts, setCourts] = useState<Court[]>(sriLankaCourts);
+  const [courts] = useState<Court[]>(sriLankaCourts);
   const [selectedType, setSelectedType] = useState<string>('all');
   const [selectedDistrict, setSelectedDistrict] = useState<string>('all');
   const [selectedCourt, setSelectedCourt] = useState<Court | null>(null);
   const [mapCenter, setMapCenter] = useState({ lat: 7.8731, lng: 80.7718 }); // Center of Sri Lanka
   const [mapZoom, setMapZoom] = useState(8);
-  const mapRef = useRef<L.Map | null>(null);
 
   const getLocation = () => {
     setLoading(true);
@@ -461,57 +448,19 @@ export default function CourtLocator() {
     navigator.geolocation.getCurrentPosition(
       (position) => {
         setLocation(position);
-        
-        // Calculate distances from user location to each court
-        const updatedCourts = sriLankaCourts.map(court => {
-          const distance = calculateDistance(
-            position.coords.latitude,
-            position.coords.longitude,
-            court.coordinates.lat,
-            court.coordinates.lng
-          );
-          
-          return {
-            ...court,
-            distance: parseFloat(distance.toFixed(1))
-          };
-        });
-        
-        // Sort courts by distance
-        updatedCourts.sort((a, b) => (a.distance || 0) - (b.distance || 0));
-        setCourts(updatedCourts);
-        
+        setLoading(false);
         // Center map on user location
         setMapCenter({
           lat: position.coords.latitude,
           lng: position.coords.longitude
         });
         setMapZoom(10);
-        setLoading(false);
       },
       () => {
         setError('Unable to retrieve your location');
         setLoading(false);
       }
     );
-  };
-
-  // Calculate distance between two points using Haversine formula
-  const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
-    const R = 6371; // Radius of the earth in km
-    const dLat = deg2rad(lat2 - lat1);
-    const dLon = deg2rad(lon2 - lon1);
-    const a = 
-      Math.sin(dLat/2) * Math.sin(dLat/2) +
-      Math.cos(deg2rad(lat1)) * Math.cos(deg2rad(lat2)) * 
-      Math.sin(dLon/2) * Math.sin(dLon/2); 
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)); 
-    const distance = R * c; // Distance in km
-    return distance;
-  };
-
-  const deg2rad = (deg: number): number => {
-    return deg * (Math.PI/180);
   };
 
   // Get unique districts
@@ -535,12 +484,12 @@ export default function CourtLocator() {
         setMapCenter(districtCourts[0].coordinates);
         setMapZoom(12);
       }
-    } else if (!selectedCourt) {
-      // Reset to Sri Lanka center if no court is selected
+    } else {
+      // Reset to Sri Lanka center
       setMapCenter({ lat: 7.8731, lng: 80.7718 });
       setMapZoom(8);
     }
-  }, [selectedDistrict, courts, selectedCourt]);
+  }, [selectedDistrict, courts]);
 
   // When a court is selected, center the map on that court
   useEffect(() => {
@@ -550,23 +499,18 @@ export default function CourtLocator() {
     }
   }, [selectedCourt]);
 
-  // Reset selected court when filters change
-  useEffect(() => {
-    setSelectedCourt(null);
-  }, [selectedType, selectedDistrict]);
-
   return (
-    <div className="max-w-6xl mx-auto p-3 md:p-6">
-      <div className="bg-white rounded-lg shadow-lg p-4 md:p-6">
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6 md:mb-8 gap-4">
-          <h1 className="text-2xl md:text-3xl font-bold text-gray-800 flex items-center gap-2">
-            <Building2 className="h-6 w-6 md:h-8 md:w-8 text-blue-600" />
+    <div className="max-w-6xl mx-auto p-6">
+      <div className="bg-white rounded-lg shadow-lg p-6">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-8 gap-4">
+          <h1 className="text-3xl font-bold text-gray-800 flex items-center gap-2">
+            <Building2 className="h-8 w-8 text-blue-600" />
             Sri Lanka Court Locator
           </h1>
           <button
             onClick={getLocation}
             disabled={loading}
-            className="flex items-center justify-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 w-full md:w-auto"
+            className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
           >
             <Compass className="h-5 w-5" />
             {loading ? 'Locating...' : 'Find Nearby Courts'}
@@ -579,17 +523,17 @@ export default function CourtLocator() {
           </div>
         )}
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <div>
-            <div className="mb-4 md:mb-6 grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
+            <div className="mb-6 grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1 md:mb-2">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
                   Filter by District
                 </label>
                 <select
                   value={selectedDistrict}
                   onChange={(e) => setSelectedDistrict(e.target.value)}
-                  className="w-full border border-gray-300 rounded-md shadow-sm px-3 py-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full border border-gray-300 rounded-md shadow-sm px-4 py-2 focus:ring-blue-500 focus:border-blue-500"
                 >
                   <option value="all">All Districts</option>
                   {districts.map(district => (
@@ -598,13 +542,13 @@ export default function CourtLocator() {
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1 md:mb-2">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
                   Filter by Court Type
                 </label>
                 <select
                   value={selectedType}
                   onChange={(e) => setSelectedType(e.target.value)}
-                  className="w-full border border-gray-300 rounded-md shadow-sm px-3 py-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full border border-gray-300 rounded-md shadow-sm px-4 py-2 focus:ring-blue-500 focus:border-blue-500"
                 >
                   <option value="all">All Court Types</option>
                   {courtTypes.map(type => (
@@ -614,39 +558,39 @@ export default function CourtLocator() {
               </div>
             </div>
 
-            <div className="space-y-3 max-h-[500px] md:max-h-[600px] overflow-y-auto pr-1">
+            <div className="space-y-4 max-h-[600px] overflow-y-auto">
               {filteredCourts.length > 0 ? (
                 filteredCourts.map((court) => (
                   <div
                     key={court.id}
-                    className={`border rounded-lg p-3 md:p-4 transition-colors cursor-pointer ${
+                    className={`border rounded-lg p-4 transition-colors cursor-pointer ${
                       selectedCourt?.id === court.id 
                         ? 'border-blue-500 bg-blue-50' 
-                        : 'border-gray-200 hover:border-blue-300 hover:bg-gray-50'
+                        : 'border-gray-200 hover:border-blue-500'
                     }`}
                     onClick={() => setSelectedCourt(court)}
                   >
                     <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <h3 className="text-base md:text-lg font-semibold text-gray-800">{court.name}</h3>
-                        <div className="flex flex-wrap gap-1 md:gap-2 mt-1">
-                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                      <div>
+                        <h3 className="text-lg font-semibold text-gray-800">{court.name}</h3>
+                        <div className="flex flex-wrap gap-2 mt-1">
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
                             {court.type}
                           </span>
-                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
                             {court.district}
                           </span>
                         </div>
-                        <div className="flex items-center gap-1 text-gray-500 mt-2 text-sm">
-                          <MapPin className="h-3 w-3 md:h-4 md:w-4 flex-shrink-0" />
-                          <span className="line-clamp-1">{court.address}</span>
+                        <div className="flex items-center gap-1 text-gray-500 mt-2">
+                          <MapPin className="h-4 w-4" />
+                          <span>{court.address}</span>
                         </div>
                       </div>
-                      <div className="text-right ml-2 flex-shrink-0">
-                        {court.distance !== undefined && (
-                          <span className="text-xs md:text-sm text-gray-500">{court.distance} km away</span>
+                      <div className="text-right">
+                        {court.distance && (
+                          <span className="text-sm text-gray-500">{court.distance} km away</span>
                         )}
-                        <button className="block mt-2 text-sm text-blue-600 hover:text-blue-800">
+                        <button className="block mt-2 text-blue-600 hover:text-blue-800">
                           View Details
                         </button>
                       </div>
@@ -661,67 +605,21 @@ export default function CourtLocator() {
             </div>
           </div>
 
-          <div className="h-[400px] md:h-[600px] rounded-lg overflow-hidden border border-gray-200 relative">
-            {mapLoading && (
-              <div className="absolute inset-0 bg-gray-100 bg-opacity-75 flex items-center justify-center z-10">
-                <div className="text-blue-600 font-medium">Loading map...</div>
-              </div>
-            )}
+          <div className="h-[600px] rounded-lg overflow-hidden border border-gray-200">
             <MapContainer
               center={[mapCenter.lat, mapCenter.lng]}
               zoom={mapZoom}
               style={{ height: '100%', width: '100%' }}
-              whenCreated={(map) => {
-                mapRef.current = map;
-                setMapLoading(false);
-              }}
             >
               <TileLayer
                 attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
                 url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
               />
-              
-              {/* User location marker */}
-              {location && (
-                <Marker
-                  position={[location.coords.latitude, location.coords.longitude]}
-                  icon={new L.Icon({
-                    iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-blue.png',
-                    shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
-                    iconSize: [25, 41],
-                    iconAnchor: [12, 41],
-                    popupAnchor: [1, -34],
-                    shadowSize: [41, 41]
-                  })}
-                >
-                  <Popup>
-                    <div className="p-1">
-                      <p className="font-semibold">Your Location</p>
-                    </div>
-                  </Popup>
-                </Marker>
-              )}
-              
               {filteredCourts.map((court) => (
                 <Marker
                   key={court.id}
                   position={[court.coordinates.lat, court.coordinates.lng]}
-                  icon={selectedCourt?.id === court.id 
-                    ? new L.Icon({
-                        iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
-                        shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
-                        iconSize: [25, 41],
-                        iconAnchor: [12, 41],
-                        popupAnchor: [1, -34],
-                        shadowSize: [41, 41]
-                      })
-                    : customIcon
-                  }
-                  eventHandlers={{
-                    click: () => {
-                      setSelectedCourt(court);
-                    }
-                  }}
+                  icon={customIcon}
                 >
                   <Popup>
                     <div className="p-2">
@@ -729,70 +627,13 @@ export default function CourtLocator() {
                       <p className="text-sm text-gray-600">{court.type}</p>
                       <p className="text-sm text-gray-500 mt-1">{court.address}</p>
                       <p className="text-sm text-gray-500 mt-1">{court.district} District</p>
-                      {court.distance !== undefined && (
-                        <p className="text-sm font-medium text-blue-600 mt-1">{court.distance} km away</p>
-                      )}
                     </div>
                   </Popup>
                 </Marker>
               ))}
-              
-              <MapUpdater center={mapCenter} zoom={mapZoom} />
             </MapContainer>
           </div>
         </div>
-        
-        {/* Court details section */}
-        {selectedCourt && (
-          <div className="mt-6 p-4 border border-blue-200 rounded-lg bg-blue-50">
-            <div className="flex justify-between items-start">
-              <h2 className="text-xl font-bold text-gray-800">{selectedCourt.name}</h2>
-              <button 
-                onClick={() => setSelectedCourt(null)}
-                className="text-gray-500 hover:text-gray-700"
-              >
-                ✕
-              </button>
-            </div>
-            <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <p className="text-sm text-gray-600 flex items-center gap-2 mb-2">
-                  <Building2 className="h-4 w-4 text-blue-600" />
-                  <span className="font-medium">Type:</span> {selectedCourt.type}
-                </p>
-                <p className="text-sm text-gray-600 flex items-center gap-2 mb-2">
-                  <MapPin className="h-4 w-4 text-blue-600" />
-                  <span className="font-medium">Address:</span> {selectedCourt.address}
-                </p>
-                <p className="text-sm text-gray-600 flex items-center gap-2 mb-2">
-                  <span className="font-medium">District:</span> {selectedCourt.district}
-                </p>
-                {selectedCourt.distance !== undefined && (
-                  <p className="text-sm text-gray-600 flex items-center gap-2">
-                    <Compass className="h-4 w-4 text-blue-600" />
-                    <span className="font-medium">Distance:</span> {selectedCourt.distance} km from your location
-                  </p>
-                )}
-              </div>
-              <div>
-                <p className="text-sm text-gray-600 mb-2">
-                  <span className="font-medium">Coordinates:</span> {selectedCourt.coordinates.lat.toFixed(4)}, {selectedCourt.coordinates.lng.toFixed(4)}
-                </p>
-                <div className="mt-3">
-                  <a 
-                    href={`https://www.google.com/maps/dir/?api=1&destination=${selectedCourt.coordinates.lat},${selectedCourt.coordinates.lng}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-2 bg-blue-600 text-white px-3 py-1.5 rounded-lg hover:bg-blue-700 transition-colors text-sm"
-                  >
-                    <MapPin className="h-4 w-4" />
-                    Get Directions
-                  </a>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );
